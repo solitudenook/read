@@ -116,7 +116,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
     display: block;
     width: 20px;
     height: 2.4px;
-    background-color: #333
+    background-color: #000
 }
 
 .menu-bar + .menu-bar {
@@ -687,7 +687,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
     top: 0;
     left: 0;
     width: 280px;
-    height: 100vh;
+    height: 100%;
     background: white;
     z-index: 1002;
     transform: translateX(-100%);
@@ -695,7 +695,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
     display: flex;
     flex-direction: column;
     padding: 15px 20px;
-    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .sidebar.open {
@@ -755,17 +755,10 @@ body.timeline-open .timeline-modal {
     transform: translateX(0);
 }
 
-.sidebar {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
-    overflow: hidden;
-}
 
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
-    padding-right: 5px;
 }
 
 .sidebar-menu {
@@ -779,12 +772,12 @@ body.timeline-open .timeline-modal {
 .menu-item {
     display: flex;
     align-items: center;
-    padding: 12px 0;
+    padding: 16px 0;
     border-bottom: 1px solid #f0f0f0;
     color: #000;
     cursor: pointer;
     transition: background 0.2s;
-    font-size: 15px;
+    font-size: 16px;
 }
 
 .menu-item:last-child {
@@ -793,8 +786,8 @@ body.timeline-open .timeline-modal {
 
 .menu-item i {
     width: 24px;
-    font-size: 18px;
-    color: #666;
+    font-size: 20px;
+    color: #000;
     margin-right: 12px;
     text-align: center;
 }
