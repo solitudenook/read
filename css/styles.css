@@ -176,7 +176,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
     position: absolute;
     width: 100%;
     height: 100%;
-    padding: 20px;
+    padding: 0px 20px 20px 20px;
     box-sizing: border-box;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     will-change: transform, opacity;
@@ -191,10 +191,10 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 /* ========== 细小滚动条（文章详情、收藏页、更新日志页） ========== */
 .card-inner::-webkit-scrollbar {
     width: 4px;
-    height: 4px;
+    height: 12px;
 }
 .card-inner::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: none;
 }
 .card-inner::-webkit-scrollbar-thumb {
     background: #ccc;
@@ -203,11 +203,11 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 .favorites-body::-webkit-scrollbar,
 .changelog-body::-webkit-scrollbar {
     width: 4px;
-    height: 4px;
+    height: 12px;
 }
 .favorites-body::-webkit-scrollbar-track,
 .changelog-body::-webkit-scrollbar-track {
-    background: #f1f1f1;
+    background: none;
 }
 .favorites-body::-webkit-scrollbar-thumb,
 .changelog-body::-webkit-scrollbar-thumb {
@@ -368,6 +368,17 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 .card#sentence .card-inner,
 .card#article .card-inner {
     justify-content: flex-start;
+}
+.card#article .card-inner {
+    overflow-y: auto;
+    padding-right: 16px;      /* 你实际想要的内边距 */
+    margin-right: -16px;      /* 负边距抵消内边距，使滚动条紧贴右边框 */
+    width: calc(100% + 16px); /* 补偿宽度，防止内容被裁剪 */
+}
+
+/* 内部内容容器需要保持原有的内边距 */
+.card#article .card-inner > * {
+    padding-right: 0;         /* 可选，避免重复内边距 */
 }
 .from {
     text-align: right;
