@@ -744,7 +744,9 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 .page-content.favorites-closing-push {
     transform: translateX(-100%);
 }
-
+html, body {
+    overflow-x: hidden;
+}
 body.sidebar-open .page-content {
     margin-left: 280px;
 }
