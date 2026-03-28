@@ -1,5 +1,6 @@
 // ========== 全局配置 ==========
 const API_BASE = 'https://solitudenook.top';
+
 // ========== 全局变量与状态 ==========
 const navItems = document.querySelectorAll('.nav-item');
 const cards = document.querySelectorAll('.card');
@@ -45,12 +46,12 @@ class AudioManager {
             audio.src = src;
             audio.preload = 'metadata';
             audio.loop = false;
-            
+
             audio.addEventListener('timeupdate', () => this.onTimeUpdate(date, audio));
             audio.addEventListener('ended', () => this.onEnded(date));
             audio.addEventListener('play', () => this.onPlay(date));
             audio.addEventListener('pause', () => this.onPause(date));
-            
+
             this.players.set(date, {
                 audio: audio,
                 playing: false,
@@ -79,11 +80,11 @@ class AudioManager {
     play(date) {
         const player = this.players.get(date);
         if (!player || !player.src) return false;
-        
+
         if (this.currentPlayingDate && this.currentPlayingDate !== date) {
             this.stop(this.currentPlayingDate);
         }
-        
+
         if (player.audio.paused) {
             player.audio.play().catch(e => console.warn('播放失败', e));
             player.playing = true;
@@ -94,7 +95,7 @@ class AudioManager {
         }
         return true;
     }
-    
+
     pause(date) {
         const player = this.players.get(date);
         if (player && !player.audio.paused) {
@@ -108,7 +109,7 @@ class AudioManager {
             }
         }
     }
-    
+
     stop(date) {
         const player = this.players.get(date);
         if (player) {
@@ -124,7 +125,7 @@ class AudioManager {
             }
         }
     }
-    
+
     stopAllExcept(exceptDate) {
         for (let [date, player] of this.players.entries()) {
             if (date !== exceptDate && player.playing) {
@@ -136,15 +137,15 @@ class AudioManager {
             }
         }
     }
-    
+
     getPlayerState(date) {
         return this.players.get(date) || null;
     }
-    
+
     updateUIForDate(date) {
         if (isUpdatingUI || date !== currentDisplayDate) return;
         isUpdatingUI = true;
-        
+
         const player = this.players.get(date);
         if (player) {
             if (player.playing) {
@@ -157,7 +158,7 @@ class AudioManager {
                 playPauseIcon.classList.add('pause');
                 albumImage.style.animationPlayState = 'paused';
             }
-            
+
             const duration = player.audio.duration;
             if (duration && isFinite(duration)) {
                 const percent = (player.audio.currentTime / duration) * 100;
@@ -171,10 +172,10 @@ class AudioManager {
             albumImage.classList.remove('rotating');
             progressFill.style.width = '0%';
         }
-        
+
         isUpdatingUI = false;
     }
-    
+
     onTimeUpdate(date, audio) {
         if (date === currentDisplayDate) {
             if (!isUpdatingUI && audio.duration) {
@@ -185,7 +186,7 @@ class AudioManager {
         const player = this.players.get(date);
         if (player) player.currentTime = audio.currentTime;
     }
-    
+
     onEnded(date) {
         const player = this.players.get(date);
         if (player) {
@@ -201,7 +202,7 @@ class AudioManager {
             }
         }
     }
-    
+
     onPlay(date) {
         const player = this.players.get(date);
         if (player) {
@@ -215,7 +216,7 @@ class AudioManager {
             }
         }
     }
-    
+
     onPause(date) {
         const player = this.players.get(date);
         if (player) {
@@ -228,7 +229,7 @@ class AudioManager {
             }
         }
     }
-    
+
     clear() {
         for (let [date, player] of this.players.entries()) {
             player.audio.pause();
@@ -291,7 +292,7 @@ function getAllFavoriteSummaries() {
                 try {
                     const summary = JSON.parse(summaryStr);
                     summaries.push({ date, type, summary });
-                } catch(e) {}
+                } catch (e) { }
             }
         }
     }
@@ -306,7 +307,7 @@ function updateCardVerticalPosition() {
 
     const navHeight = nav.offsetHeight;
     const viewportHeight = window.innerHeight;
-    
+
     cardContainer.style.height = (viewportHeight - navHeight) + 'px';
     cardContainer.style.top = navHeight + 'px';
 }
@@ -352,15 +353,36 @@ function getIndexFromId(id) {
     return tabOrder.indexOf(id);
 }
 
-// ========== 日期处理 ==========
-function getCurrentDate() {
+// ========== 日期处理（新增优化） ==========
+function getDateFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
-    let date = urlParams.get('date');
-    if (!date) {
-        const today = new Date();
-        date = today.toISOString().slice(0,10);
+    return urlParams.get('date');
+}
+
+function getLocalToday() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+async function getLatestPublishedDate() {
+    try {
+        const res = await fetch(`${API_BASE}/api/posts?type=published`);
+        if (!res.ok) throw new Error('获取日期列表失败');
+        let data = await res.json();
+        // 兼容不同返回格式
+        let posts = Array.isArray(data) ? data : (data.posts || data.data || []);
+        if (!posts.length) return null;
+        const dates = posts.map(item => item.date).filter(d => d);
+        if (!dates.length) return null;
+        dates.sort((a, b) => b.localeCompare(a));
+        return dates[0];
+    } catch (err) {
+        console.warn('获取最新日期失败:', err);
+        return null;
     }
-    return date;
 }
 
 function displayDateInNav(date) {
@@ -389,7 +411,7 @@ function loadLikedStateFromLocalStorage(date) {
 async function loadDataForDate(date) {
     currentDate = date;
     currentDisplayDate = date;
-    
+
     document.querySelectorAll('.stats-actions .favorite-btn i').forEach(icon => {
         icon.classList.remove('ri-heart-2-fill');
         icon.classList.add('ri-heart-2-line');
@@ -429,18 +451,15 @@ async function switchToDate(date) {
 // ========== 时间轴数据加载 ==========
 async function loadTimelineData() {
     try {
-        // 修改请求 URL，加上 type=published 参数
         const res = await fetch(`${API_BASE}/api/posts?type=published`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         let data = await res.json();
 
-        // 从返回的对象数组中提取 date 字段
         let dates = [];
         if (Array.isArray(data)) {
             dates = data.map(item => item.date).filter(d => d);
         }
 
-        // 去重并排序（最新的在上）
         dates = [...new Set(dates)].sort((a, b) => b.localeCompare(a));
 
         if (!dates.length) {
@@ -449,7 +468,6 @@ async function loadTimelineData() {
             return;
         }
 
-        // 按年月分组
         const monthMap = new Map();
         dates.forEach(date => {
             const [year, month] = date.split('-');
@@ -460,7 +478,7 @@ async function loadTimelineData() {
 
         const months = Array.from(monthMap.entries())
             .map(([key, dates]) => ({ key, dates }))
-            .sort((a, b) => (a.key < b.key ? 1 : -1)); // 最新的月份在前
+            .sort((a, b) => (a.key < b.key ? 1 : -1));
 
         renderTimeline(months);
     } catch (error) {
@@ -469,6 +487,7 @@ async function loadTimelineData() {
         document.querySelector('.date-grid').innerHTML = '<p>加载失败，请刷新重试</p>';
     }
 }
+
 function renderTimeline(months) {
     const monthList = document.querySelector('.month-list');
     const dateGrid = document.querySelector('.date-grid');
@@ -525,11 +544,11 @@ function updatePage(data, date) {
     const musicArtist = data.music?.artist || '';
     const musicCover = data.music?.cover || '';
     const musicSrc = data.music?.src || '';
-    
+
     trackAlbum.textContent = musicTitle;
     trackSinger.textContent = musicArtist;
     document.getElementById('album-img').src = musicCover;
-    
+
     if (musicSrc) {
         audioManager.getOrCreate(date, musicSrc, musicTitle, musicArtist, musicCover);
     } else {
@@ -539,81 +558,78 @@ function updatePage(data, date) {
             existing.playing = false;
         }
     }
-    
+
     const sentenceTextEl = document.getElementById('sentenceText');
     if (sentenceTextEl) {
         const sentenceContent = data.sentence?.text || '';
         sentenceTextEl.innerHTML = sentenceContent.replace(/\n/g, '<br>');
     }
-    
+
     const fromSpan = document.querySelector('#sentence .from span');
     if (fromSpan) {
         fromSpan.textContent = data.sentence?.author ? '—' + data.sentence.author : '';
     }
-    
+
     const sentenceImgContainer = document.getElementById('sentenceImageContainer');
     const sentenceImg = document.getElementById('sentenceImg');
     const sentenceImageUrl = data.sentence?.image || '';
-    
+
     if (sentenceImageUrl && sentenceImgContainer && sentenceImg) {
         sentenceImg.src = sentenceImageUrl;
         sentenceImgContainer.style.display = 'block';
     } else if (sentenceImgContainer) {
         sentenceImgContainer.style.display = 'none';
     }
-    
+
     const fullContent = data.article?.content || '';
     document.getElementById('article-title').textContent = data.article?.title || '';
     document.getElementById('article-author').textContent = `文/${data.article?.author || '佚名'}`;
     document.getElementById('article-content').innerHTML = fullContent.replace(/\n/g, '<br>');
     const articleImg = document.querySelector('#article .bg-img img');
-const articleBg = document.querySelector('#article .bg-img');
+    const articleBg = document.querySelector('#article .bg-img');
 
-if (articleImg && articleBg) {
-    const imageUrl = data.article?.image || '';
-    
-    // 重置状态：先隐藏图片，移除加载失败标记
-    articleImg.style.display = 'none';
-    articleBg.classList.remove('load-failed');
-    
-    if (imageUrl) {
-        // 图片加载成功时显示
-        articleImg.onload = () => {
-            articleImg.style.display = 'block';
-        };
-        // 图片加载失败时：保持隐藏，可以添加一个类用于样式（例如显示灰色背景）
-        articleImg.onerror = () => {
+    if (articleImg && articleBg) {
+        const imageUrl = data.article?.image || '';
+
+        articleImg.style.display = 'none';
+        articleBg.classList.remove('load-failed');
+
+        if (imageUrl) {
+            articleImg.onload = () => {
+                articleImg.style.display = 'block';
+            };
+            articleImg.onerror = () => {
+                articleBg.classList.add('load-failed');
+                articleImg.style.display = 'none';
+            };
+            articleImg.src = imageUrl;
+        } else {
             articleBg.classList.add('load-failed');
-            articleImg.style.display = 'none';
-        };
-        articleImg.src = imageUrl;
-    } else {
-        // 没有图片时，标记为失败状态（显示占位背景）
-        articleBg.classList.add('load-failed');
+        }
     }
-}
+
     const musicStats = data.musicStats || { favorites: 0, shares: 0 };
     const sentenceStats = data.sentenceStats || { favorites: 0, shares: 0 };
     const articleStats = data.articleStats || { favorites: 0, shares: 0 };
-    
+
     document.querySelector('#music .stats-actions .favorite-btn .count').textContent = musicStats.favorites;
     document.querySelector('#music .stats-actions .share-btn .count').textContent = musicStats.shares;
     document.querySelector('#sentence .stats-actions .favorite-btn .count').textContent = sentenceStats.favorites;
     document.querySelector('#sentence .stats-actions .share-btn .count').textContent = sentenceStats.shares;
     document.querySelector('#article .stats-actions .favorite-btn .count').textContent = articleStats.favorites;
     document.querySelector('#article .stats-actions .share-btn .count').textContent = articleStats.shares;
-    
+
     currentDisplayDate = date;
 }
 
 playPauseIcon.addEventListener('click', () => {
     if (!currentDisplayDate) return;
-    
+
     const player = audioManager.getPlayerState(currentDisplayDate);
     if (!player || !player.src) {
         return;
     }
-    
+
     if (player.playing) {
         audioManager.pause(currentDisplayDate);
     } else {
@@ -626,7 +642,7 @@ function updateHighlight() {
     if (!activeItem) return;
     const navRect = navContainer.getBoundingClientRect();
     const itemRect = activeItem.getBoundingClientRect();
-    
+
     highlight.style.width = `${itemRect.width}px`;
     highlight.style.height = `3px`;
     highlight.style.left = `${itemRect.left - navRect.left}px`;
@@ -697,7 +713,7 @@ function openSidebar() {
     document.body.classList.add('sidebar-open');
     sidebar.classList.add('open');
     overlay.classList.add('active');
-    
+
     closeTimelineModal();
     closeFavoritesModal();
     adjustFixedElements(true);
@@ -708,7 +724,7 @@ function closeSidebar() {
     document.body.classList.remove('sidebar-open');
     sidebar.classList.remove('open');
     overlay.classList.remove('active');
-    
+
     adjustFixedElements(false);
     updateCardVerticalPosition();
 }
@@ -727,12 +743,12 @@ window.addEventListener('resize', () => {
     }
 });
 
-function adjustFixedElements(isOpen) {}
+function adjustFixedElements(isOpen) { }
 
 function openTimelineModal() {
     if (sidebar.classList.contains('open')) closeSidebar();
     if (document.body.classList.contains('favorites-open')) closeFavoritesModal();
-    
+
     loadTimelineData();
     document.body.classList.add('timeline-open');
 }
@@ -770,14 +786,14 @@ document.addEventListener('click', async (e) => {
             icon.classList.remove('heart-beat');
             void icon.offsetWidth;
             icon.classList.add('heart-beat');
-            
+
             const onAnimationEnd = () => {
                 icon.classList.remove('heart-beat');
                 icon.removeEventListener('animationend', onAnimationEnd);
             };
             icon.addEventListener('animationend', onAnimationEnd, { once: true });
         }
-        
+
         const key = `${currentDate}_${type}_favorite`;
         const isLiked = localStorage.getItem(key) === 'true';
         const delta = isLiked ? -1 : 1;
@@ -788,10 +804,10 @@ document.addEventListener('click', async (e) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ delta })
             });
-            
+
             if (!response.ok) throw new Error('更新失败');
             const data = await response.json();
-            
+
             const statsKey = type + 'Stats';
             const newStats = data[statsKey];
             if (newStats) {
@@ -812,16 +828,15 @@ document.addEventListener('click', async (e) => {
                 localStorage.setItem(key, 'true');
                 icon.classList.remove('ri-heart-2-line');
                 icon.classList.add('ri-heart-2-fill');
-                // 获取完整数据用于缓存摘要
                 try {
                     const detailResponse = await fetch(`${API_BASE}/api/posts/${currentDate}`);
                     if (detailResponse.ok) {
                         const fullData = await detailResponse.json();
                         saveFavoriteSummary(currentDate, type, fullData);
                     }
-                } catch (e) {}
+                } catch (e) { }
             }
-            
+
             if (typeof clearDateCache === 'function') clearDateCache();
         } catch (err) {
             console.error('收藏更新失败', err);
@@ -835,7 +850,7 @@ document.addEventListener('click', async (e) => {
             });
             if (!response.ok) throw new Error('更新失败');
             const data = await response.json();
-            
+
             const statsKey = type + 'Stats';
             const newStats = data[statsKey];
             if (newStats) {
@@ -900,12 +915,12 @@ async function fetchDateData(date) {
 
 function escapeHtml(str) {
     if (!str) return '';
-    return str.replace(/[&<>]/g, function(m) {
+    return str.replace(/[&<>]/g, function (m) {
         if (m === '&') return '&amp;';
         if (m === '<') return '&lt;';
         if (m === '>') return '&gt;';
         return m;
-    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+    }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function (c) {
         return c;
     });
 }
@@ -986,8 +1001,8 @@ function renderFavoriteCard(type, data, date) {
             break;
         case 'sentence':
             if (!data.sentence || !data.sentence.text) return '';
-            const sentenceText = data.sentence.text.length > 12 
-                ? data.sentence.text.substring(0, 12) + '...' 
+            const sentenceText = data.sentence.text.length > 12
+                ? data.sentence.text.substring(0, 12) + '...'
                 : data.sentence.text;
             contentHtml = `
                 <div class="favorite-card sentence-card">
@@ -1002,8 +1017,8 @@ function renderFavoriteCard(type, data, date) {
             break;
         case 'article':
             if (!data.article || !data.article.title) return '';
-            const articlePreview = data.article.content 
-                ? data.article.content.replace(/\n/g, ' ').substring(0, 24) + '...' 
+            const articlePreview = data.article.content
+                ? data.article.content.replace(/\n/g, ' ').substring(0, 24) + '...'
                 : '';
             contentHtml = `
                 <div class="favorite-card article-card">
@@ -1163,6 +1178,7 @@ function bindSwipeEvents(container) {
 
     container._swipeHandlers = { onTouchStart, onTouchMove, onTouchEnd, onMouseDown };
 }
+
 function handleCardNavigation(e) {
     if (window._swipeJustEnded) {
         return;
@@ -1186,11 +1202,12 @@ function handleCardNavigation(e) {
         window.navigateToContent(date, type);
     }
 }
+
 async function executeDeleteFavorite(swipeContainer, date, type) {
     if (!swipeContainer) return;
     const deleteBtn = swipeContainer.querySelector('.delete-btn-area');
     if (deleteBtn) deleteBtn.style.pointerEvents = 'none';
-    
+
     try {
         const response = await fetch(`${API_BASE}/api/posts/${date}/stats/${type}/favorite`, {
             method: 'POST',
@@ -1199,35 +1216,35 @@ async function executeDeleteFavorite(swipeContainer, date, type) {
         });
         if (!response.ok) throw new Error('取消收藏失败');
         const data = await response.json();
-        
+
         const storageKey = `${date}_${type}_favorite`;
         localStorage.removeItem(storageKey);
         removeFavoriteSummary(date, type);
-        
-    if (currentDate === date) {
-        const statsKey = type + 'Stats';
-        const newStats = data[statsKey];
-        if (newStats) {
-            const actionsDiv = document.querySelector(`.stats-actions[data-type="${type}"]`);
-            if (actionsDiv) {
-                const favCountSpan = actionsDiv.querySelector('.favorite-btn .count');
-                if (favCountSpan) favCountSpan.textContent = newStats.favorites;
+
+        if (currentDate === date) {
+            const statsKey = type + 'Stats';
+            const newStats = data[statsKey];
+            if (newStats) {
+                const actionsDiv = document.querySelector(`.stats-actions[data-type="${type}"]`);
+                if (actionsDiv) {
+                    const favCountSpan = actionsDiv.querySelector('.favorite-btn .count');
+                    if (favCountSpan) favCountSpan.textContent = newStats.favorites;
+                }
+            }
+            const btnIcon = document.querySelector(`.stats-actions[data-type="${type}"] .favorite-btn i`);
+            if (btnIcon) {
+                btnIcon.classList.remove('ri-heart-2-fill');
+                btnIcon.classList.add('ri-heart-2-line');
             }
         }
-        const btnIcon = document.querySelector(`.stats-actions[data-type="${type}"] .favorite-btn i`);
-        if (btnIcon) {
-            btnIcon.classList.remove('ri-heart-2-fill');
-            btnIcon.classList.add('ri-heart-2-line');
-        }
-    }
-        
+
         const groupDiv = swipeContainer.closest('.favorites-date-group');
         swipeContainer.remove();
-        
+
         if (groupDiv && groupDiv.querySelectorAll('.swipe-container').length === 0) {
             groupDiv.remove();
         }
-        
+
         const favoritesBody = document.getElementById('favoritesBody');
         const remainingGroups = favoritesBody.querySelectorAll('.favorites-date-group');
         if (remainingGroups.length === 0) {
@@ -1240,11 +1257,11 @@ async function executeDeleteFavorite(swipeContainer, date, type) {
             `;
             favoritesBody.classList.remove('has-favorites');
         }
-        
+
         clearDateCache();
-        
+
         if (currentlyOpenedSwipe === swipeContainer) currentlyOpenedSwipe = null;
-        
+
     } catch (err) {
         console.error('删除收藏失败', err);
         if (window.showToast) window.showToast('删除失败，请稍后重试');
@@ -1377,7 +1394,7 @@ async function renderFavorites() {
         containers.forEach(container => bindSwipeEvents(container));
         bindDeleteButtons();
     }
-    
+
     const favoritesBodyDiv = document.getElementById('favoritesBody');
     favoritesBodyDiv.removeEventListener('click', handleCardNavigation);
     favoritesBodyDiv.addEventListener('click', handleCardNavigation);
@@ -1407,7 +1424,7 @@ function openFavoritesModal() {
     closeAllSwipedItems();
     clearDateCache();
     renderFavorites();
-    
+
     document.body.classList.add('favorites-open');
     document.body.style.overflow = 'hidden';
 }
@@ -1568,37 +1585,57 @@ if (changelogModal) {
     });
 }
 
+// ========== 跨标签页数据同步（监听后台更新） ==========
+function handleStorageChange(e) {
+    if (e.key === 'admin_data_updated' && e.newValue) {
+        console.log('检测到管理后台内容更新，刷新当前页面数据');
+        if (currentDate) {
+            loadDataForDate(currentDate);
+        }
+        if (typeof clearDateCache === 'function') {
+            clearDateCache();
+        }
+    }
+}
+window.addEventListener('storage', handleStorageChange);
+
+// 页面可见性变化时刷新
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && currentDate) {
+        clearTimeout(window._visibilityTimeout);
+        window._visibilityTimeout = setTimeout(() => {
+            loadDataForDate(currentDate);
+        }, 300);
+    }
+});
+
+// ========== 历史记录管理 ==========
 window.addEventListener('popstate', (event) => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const date = urlParams.get('date') || getCurrentDate();
-    if (date !== currentDate) {
+    const date = getDateFromUrl();
+    if (date && date !== currentDate) {
         loadDataForDate(date).then(() => {
             if (currentIndex !== 0) switchTo(0);
         });
     }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-    window._swipeJustEnded = false;
-    window._swipeJustEndedTimer = null;
+// ========== 初始化 ==========
+document.addEventListener('DOMContentLoaded', async () => {
+    // 初始化 UI 相关设置（不依赖数据）
     if (document.fonts && document.fonts.ready) {
         document.fonts.ready.then(() => {
             updateHighlight();
             updateCardVerticalPosition();
         });
     }
-    const date = getCurrentDate();
-    displayDateInNav(date);
-    loadDataForDate(date);
 
+    // 恢复保存的 tab 状态
     const savedTab = localStorage.getItem(STATE_KEY) || DEFAULT_TAB;
     const savedIndex = getIndexFromId(savedTab);
-
     cards.forEach(card => card.style.transition = 'none');
     setCardsPosition(savedIndex);
     cards[0].offsetHeight;
     cards.forEach(card => card.style.transition = '');
-
     currentIndex = savedIndex;
     navItems.forEach(item => item.classList.remove('active'));
     document.querySelector(`[data-target="${savedTab}"]`).classList.add('active');
@@ -1608,7 +1645,7 @@ document.addEventListener('DOMContentLoaded', () => {
         navContainer.style.opacity = '1';
         updateCardVerticalPosition();
     }, 50);
-    
+
     resetPageContentTransform();
     bindContactUsCopy();
     bindVersionClick();
@@ -1616,6 +1653,28 @@ document.addEventListener('DOMContentLoaded', () => {
         updateHighlight();
         updateCardVerticalPosition();
     });
+
+    // --- 确定初始日期 ---
+    let initialDate = getDateFromUrl();
+
+    if (!initialDate) {
+        // URL 无参数，尝试获取最新发布日期
+        initialDate = await getLatestPublishedDate();
+        if (!initialDate) {
+            // 最终回退到本地当前日期
+            initialDate = getLocalToday();
+        }
+        // 更新 URL 但不触发重新加载，便于分享
+        const newUrl = `?date=${initialDate}`;
+        window.history.replaceState({ date: initialDate }, '', newUrl);
+    }
+
+    // 加载初始日期内容
+    displayDateInNav(initialDate);
+    await loadDataForDate(initialDate);
+    // 确保高亮和卡片位置正确（可能因内容加载触发重排）
+    updateHighlight();
+    updateCardVerticalPosition();
 });
 
 function resetPageContentTransform() {
@@ -1627,13 +1686,15 @@ function resetPageContentTransform() {
         window._favoritesClosing = false;
     }
 }
+
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js')
-    .then(reg => console.log('SW registered', reg))
-    .catch(err => console.error('SW failed', err));
+    navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('SW registered', reg))
+        .catch(err => console.error('SW failed', err));
 }
-window.toggleCard = function() {};
-window.hideCard = function() {};
+
+window.toggleCard = function () { };
+window.hideCard = function () { };
 
 // 暴露必要的全局函数供内部调用
 window.renderFavoriteCardFromSummary = renderFavoriteCardFromSummary;
