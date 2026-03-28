@@ -178,8 +178,35 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
     height: 100%;
     padding: 0px 20px 20px 20px;
     box-sizing: border-box;
-    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
-    will-change: transform, opacity;
+        will-change: transform;
+    transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+}
+
+
+/* 动画辅助类（仅用于飞出/飞入） */
+.card.temp-exit-left {
+    transform: translateX(-100%) !important;
+}
+.card.temp-exit-right {
+    transform: translateX(100%) !important;
+}
+.card.temp-enter-left {
+    transform: translateX(-100%) !important;
+}
+.card.temp-enter-right {
+    transform: translateX(100%) !important;
+}
+.card.temp-enter-active {
+    transform: translateX(0) !important;
+}
+
+/* 动画期间全局禁用交互，避免冲突 */
+body.animating-date-switch {
+    overflow: hidden;
+    touch-action: none;
+}
+body.animating-date-switch .card-container {
+    pointer-events: none;
 }
 .card .card-inner {
     flex: 1;                /* 占满除去统计栏后的剩余高度 */
@@ -225,8 +252,8 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 
 /* 音乐卡片封面区域 */
 #album-box {
-    padding: 10px 0 20px 0;
-    margin: 10px 0 20px 0;
+    padding: 10px 0;
+    margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -234,28 +261,17 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 
 .album-image,.album-image img {
     position: relative;
-    width: 220px;
-    height: 220px;
+    width: 260px;
+    height: 260px;
     transform: rotateZ(0);
     transition: 0.3s ease all;
-    box-shadow: 0 0px 0 14px #f0f0f0;
+    box-shadow: 0 0px 0 12px #f0f0f0;
     border-radius: 50%;
     overflow: hidden;
+    background: white;
 }
 
 
-.album-image::after {
-    content: '';
-    position: absolute;
-    top: 120px;          /* 外环向上偏移12px，产生间隙 */
-    left: 120px;
-    right: 120px;
-    bottom: 120px;
-    border-radius: 50%;
-    border: 2px solid #000;  /* 黑色外环，粗细可调 */
-    box-sizing: border-box;
-    pointer-events: none;     /* 避免干扰点击 */
-}
 .album-image:before {
     content: '';
     position: absolute;
@@ -342,7 +358,7 @@ html::-webkit-scrollbar,body::-webkit-scrollbar {
 }
 
 .track-singer {
-    font-size: 14px;
+    font-size: 13px;
     margin: 0;
     white-space: nowrap;
     overflow: hidden;
@@ -829,11 +845,10 @@ body.timeline-open .timeline-modal {
 .stats-actions {
     flex-shrink: 0;
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
 	align-self: center;
-    gap: 28px;
     padding-top: 10px;
-	width: 80%;
+	width: 90%;
     border-top: 0.5px solid #f0f0f0;
 }
 
@@ -848,6 +863,7 @@ body.timeline-open .timeline-modal {
     padding: 5px 10px;
     transition: background 0.2s;
 	outline: none;
+	width: 90%;
 }
 
 .stats-actions button i {
