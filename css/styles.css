@@ -927,7 +927,7 @@ body.favorites-open .favorites-modal {
 }
 
 .favorites-header h3 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
     color: #000;
 	margin-left: 10px;
@@ -1175,7 +1175,7 @@ body.changelog-open .changelog-modal {
     flex-shrink: 0;
 }
 .changelog-header h3 {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 500;
     margin-left: 10px;
     color: #000;
