@@ -53,12 +53,10 @@ async function fetchPublishedDatesList() {
     }
     isDateListLoading = true;
     try {
-        const res = await fetch(`${API_BASE}/api/posts?type=published`);
+        const res = await fetch(`${API_BASE}/api/dates`);
         if (!res.ok) throw new Error('获取日期列表失败');
-        let data = await res.json();
-        let dates = Array.isArray(data) ? data : (data.posts || data.data || []);
-        dates = dates.map(item => item.date).filter(d => d);
-        publishedDates = [...new Set(dates)].sort((a, b) => a.localeCompare(b));
+        const dates = await res.json();
+        publishedDates = Array.isArray(dates) ? dates : [];
     } catch (err) {
         console.warn('获取日期列表失败，日期切换功能将受限', err);
         publishedDates = [];
@@ -334,21 +332,21 @@ function saveFavoriteSummary(date, type, data) {
             title: data.music.title,
             subtitle: data.music.artist,
             cover: data.music.cover,
-            preview: ''
+            preview: ''  // 音乐无需预览
         };
     } else if (type === 'sentence' && data.sentence) {
         summary = {
             title: '',
             subtitle: data.sentence.author,
             cover: data.sentence.image || '',
-            preview: data.sentence.text.length > 20 ? data.sentence.text.substring(0, 20) + '...' : data.sentence.text
+            preview: data.sentence.text  // 存储完整句子文本
         };
     } else if (type === 'article' && data.article) {
         summary = {
             title: data.article.title,
             subtitle: data.article.author,
             cover: data.article.image,
-            preview: data.article.content ? data.article.content.replace(/\n/g, ' ').substring(0, 24) + '...' : ''
+            preview: data.article.content.replace(/\n/g, ' ')  // 存储完整内容（去换行）
         };
     }
     if (summary) {
@@ -356,7 +354,6 @@ function saveFavoriteSummary(date, type, data) {
         localStorage.setItem(key, JSON.stringify(summary));
     }
 }
-
 function removeFavoriteSummary(date, type) {
     const key = `${FAVORITE_SUMMARY_KEY_PREFIX}${date}_${type}`;
     localStorage.removeItem(key);
@@ -1031,6 +1028,12 @@ function buildSwipeCardHTML(contentHtml, date, type) {
 
 function renderFavoriteCardFromSummary(type, summary, date) {
     let contentHtml = '';
+    // 如果有完整数据，优先使用完整数据渲染
+    const fullData = dateDataCache.get(date);
+    if (fullData) {
+        return renderFavoriteCard(type, fullData, date);
+    }
+    // 否则使用 summary 构建（保持原有内容，依赖 CSS 省略）
     if (type === 'music') {
         contentHtml = `
             <div class="favorite-card music-card">
@@ -1048,9 +1051,9 @@ function renderFavoriteCardFromSummary(type, summary, date) {
                 <img class="card-cover" src="${escapeHtml(summary.cover || '')}" onerror="this.src='img/default-sentence.png'">
                 <div class="card-info">
                     <div class="card-preview">“${escapeHtml(summary.preview)}”</div>
-                    <div class="card-subtitle">— ${escapeHtml(summary.subtitle || '佚名')}</div>
+                    <div class="card-subtitle">${escapeHtml(summary.subtitle || '佚名')}</div>
                 </div>
-                 <i class="ri-article-line" style="color: #999; font-size: 22px;"></i>
+                <i class="ri-article-line" style="color: #999; font-size: 22px;"></i>
             </div>
         `;
     } else if (type === 'article') {
@@ -1058,13 +1061,13 @@ function renderFavoriteCardFromSummary(type, summary, date) {
             <div class="favorite-card article-card">
                 <img class="card-cover" src="${escapeHtml(summary.cover || '')}" onerror="this.src='img/default-article.png'">
                 <div class="card-info">
-                <div class="card-title-row">
-                    <div class="card-title">${escapeHtml(summary.title)}</div>
-                    <div class="card-subtitle">${escapeHtml(summary.subtitle || '')}</div>
+                    <div class="card-title-row">
+                        <div class="card-title">${escapeHtml(summary.title)}</div>
+                        <div class="card-subtitle">${escapeHtml(summary.subtitle || '')}</div>
                     </div>
                     <div class="card-preview">${escapeHtml(summary.preview)}</div>
                 </div>
-                  <i class="ri-newspaper-line" style="color: #999; font-size: 22px;"></i>
+                <i class="ri-newspaper-line" style="color: #999; font-size: 22px;"></i>
             </div>
         `;
     }
@@ -1089,15 +1092,13 @@ function renderFavoriteCard(type, data, date) {
             break;
         case 'sentence':
             if (!data.sentence || !data.sentence.text) return '';
-            const sentenceText = data.sentence.text.length > 12
-                ? data.sentence.text.substring(0, 12) + '...'
-                : data.sentence.text;
+            const fullText = data.sentence.text;
             contentHtml = `
                 <div class="favorite-card sentence-card">
                     <img class="card-cover" src="${data.sentence.image || ''}" onerror="this.src='img/default-sentence.png'">
                     <div class="card-info">
-                        <div class="card-preview">“${escapeHtml(sentenceText)}”</div>
-                        <div class="card-subtitle">— ${escapeHtml(data.sentence.author || '佚名')}</div>
+                        <div class="card-preview">“${escapeHtml(fullText)}”</div>
+                        <div class="card-subtitle">${escapeHtml(data.sentence.author || '佚名')}</div>
                     </div>
                     <i class="ri-article-line" style="color: #999; font-size: 22px;"></i>
                 </div>
@@ -1105,16 +1106,18 @@ function renderFavoriteCard(type, data, date) {
             break;
         case 'article':
             if (!data.article || !data.article.title) return '';
-            const articlePreview = data.article.content
-                ? data.article.content.replace(/\n/g, ' ').substring(0, 24) + '...'
+            const fullPreview = data.article.content
+                ? data.article.content.replace(/\n/g, ' ')
                 : '';
             contentHtml = `
                 <div class="favorite-card article-card">
                     <img class="card-cover" src="${data.article.image || ''}" onerror="this.src='img/default-article.png'">
                     <div class="card-info">
-                        <div class="card-title">${escapeHtml(data.article.title)}</div>
-                        <div class="card-subtitle">${escapeHtml(data.article.author || '')}</div>
-                        <div class="card-preview">${escapeHtml(articlePreview)}</div>
+                        <div class="card-title-row">
+                            <div class="card-title">${escapeHtml(data.article.title)}</div>
+                            <div class="card-subtitle">${escapeHtml(data.article.author || '')}</div>
+                        </div>
+                        <div class="card-preview">${escapeHtml(fullPreview)}</div>
                     </div>
                     <i class="ri-newspaper-line" style="color: #999; font-size: 22px;"></i>
                 </div>
@@ -1124,7 +1127,6 @@ function renderFavoriteCard(type, data, date) {
     }
     return buildSwipeCardHTML(contentHtml, date, type);
 }
-
 let currentlyOpenedSwipe = null;
 
 function closeAllSwipedItems() {
@@ -1378,31 +1380,17 @@ async function handleDeleteClick(e) {
         await executeDeleteFavorite(swipeContainer, date, type);
     }
 }
-
 async function renderFavorites() {
     const favoritesBody = document.getElementById('favoritesBody');
     if (!favoritesBody) return;
 
     favoritesBody.classList.remove('empty', 'has-favorites');
-
     const favorites = getFavoritesFromStorage();
     if (favorites.length === 0) {
         favoritesBody.classList.add('empty');
-        favoritesBody.innerHTML = `
-            <div class="empty-favorites">
-                <i class="ri-heart-2-fill"></i>
-                <p>暂无收藏内容</p>
-            </div>
-        `;
+        favoritesBody.innerHTML = `<div class="empty-favorites"><i class="ri-heart-2-fill"></i><p>暂无收藏内容</p></div>`;
         return;
     }
-
-    const summaries = getAllFavoriteSummaries();
-    const summaryMap = new Map();
-    summaries.forEach(s => {
-        const key = `${s.date}_${s.type}`;
-        summaryMap.set(key, s.summary);
-    });
 
     const groups = groupFavoritesByDate(favorites);
     const sortedDates = Array.from(groups.keys()).sort((a, b) => b.localeCompare(a));
@@ -1414,34 +1402,31 @@ async function renderFavorites() {
         const types = groups.get(date);
         const [year, month, day] = date.split('-');
         const formattedDate = `${year}年${parseInt(month)}月${parseInt(day)}日`;
-        html += `<div class="favorites-date-group" data-date="${date}">
-                    <div class="date-group-header">-&nbsp;${formattedDate}&nbsp;-</div>`;
+        html += `<div class="favorites-date-group" data-date="${date}"><div class="date-group-header">-&nbsp;${formattedDate}&nbsp;-</div>`;
 
         for (const type of ['music', 'sentence', 'article']) {
             if (!types.includes(type)) continue;
 
-            const cacheKey = `${date}_${type}`;
-            const summary = summaryMap.get(cacheKey);
-            if (summary) {
-                html += renderFavoriteCardFromSummary(type, summary, date);
+            const fullData = dateDataCache.get(date);
+            if (fullData) {
+                // 有完整数据直接渲染
+                const cardHtml = renderFavoriteCard(type, fullData, date);
+                if (cardHtml) html += cardHtml;
             } else {
-                html += `
-                    <div class="swipe-container placeholder" data-date="${date}" data-type="${type}">
-                        <div class="swipe-inner">
-                            <div class="card-content">
-                                <div class="favorite-card ${type}-card">
-                                    <div class="card-icon"><i class="ri-loader-4-line"></i></div>
-                                    <div class="card-info">
-                                        <div class="card-title">加载中...</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="delete-btn-area" data-delete-date="${date}" data-delete-type="${type}">
-                                <i class="ri-delete-bin-line"></i>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                // 无完整数据，先尝试用 summary 渲染，并加入待获取列表
+                const key = `${FAVORITE_SUMMARY_KEY_PREFIX}${date}_${type}`;
+                const summaryStr = localStorage.getItem(key);
+                if (summaryStr) {
+                    try {
+                        const summary = JSON.parse(summaryStr);
+                        html += renderFavoriteCardFromSummary(type, summary, date);
+                    } catch(e) {
+                        // 解析失败则加入占位
+                        html += buildPlaceholderCard(date, type);
+                    }
+                } else {
+                    html += buildPlaceholderCard(date, type);
+                }
                 needFetchDates.add(date);
             }
         }
@@ -1451,6 +1436,13 @@ async function renderFavorites() {
     favoritesBody.innerHTML = html;
     favoritesBody.classList.add('has-favorites');
 
+    // 绑定左滑删除事件（现有逻辑）
+    const containers = document.querySelectorAll('#favoritesBody .swipe-container');
+    containers.forEach(container => bindSwipeEvents(container));
+    bindDeleteButtons();
+    favoritesBody.addEventListener('click', handleCardNavigation);
+
+    // 异步获取缺失的完整数据并替换卡片
     if (needFetchDates.size > 0) {
         const fetchPromises = Array.from(needFetchDates).map(date => fetchDateData(date));
         const results = await Promise.allSettled(fetchPromises);
@@ -1460,34 +1452,45 @@ async function renderFavorites() {
             if (result.status === 'fulfilled' && result.value) {
                 const types = groups.get(date);
                 for (const type of types) {
-                    const cacheKey = `${date}_${type}`;
-                    if (!summaryMap.has(cacheKey)) {
-                        saveFavoriteSummary(date, type, result.value);
-                        const targetCard = document.querySelector(`.swipe-container[data-date="${date}"][data-type="${type}"]`);
-                        if (targetCard && targetCard.classList.contains('placeholder')) {
-                            const newCardHtml = renderFavoriteCard(type, result.value, date);
-                            if (newCardHtml) {
-                                targetCard.outerHTML = newCardHtml;
-                            }
+                    // 更新缓存摘要（以便下次直接使用完整数据）
+                    saveFavoriteSummary(date, type, result.value);
+                    // 替换对应卡片
+                    const targetCard = document.querySelector(`.swipe-container[data-date="${date}"][data-type="${type}"]`);
+                    if (targetCard) {
+                        const newCardHtml = renderFavoriteCard(type, result.value, date);
+                        if (newCardHtml) {
+                            targetCard.outerHTML = newCardHtml;
+                            const newContainer = document.querySelector(`.swipe-container[data-date="${date}"][data-type="${type}"]`);
+                            if (newContainer) bindSwipeEvents(newContainer);
                         }
                     }
                 }
             }
         }
-        const containers = document.querySelectorAll('#favoritesBody .swipe-container');
-        containers.forEach(container => bindSwipeEvents(container));
-        bindDeleteButtons();
-    } else {
-        const containers = document.querySelectorAll('#favoritesBody .swipe-container');
-        containers.forEach(container => bindSwipeEvents(container));
+        // 重新绑定新卡片的删除与滑动事件
+        const newContainers = document.querySelectorAll('#favoritesBody .swipe-container');
+        newContainers.forEach(container => bindSwipeEvents(container));
         bindDeleteButtons();
     }
-
-    const favoritesBodyDiv = document.getElementById('favoritesBody');
-    favoritesBodyDiv.removeEventListener('click', handleCardNavigation);
-    favoritesBodyDiv.addEventListener('click', handleCardNavigation);
 }
 
+function buildPlaceholderCard(date, type) {
+    return `
+        <div class="swipe-container placeholder" data-date="${date}" data-type="${type}">
+            <div class="swipe-inner">
+                <div class="card-content">
+                    <div class="favorite-card ${type}-card">
+                        <div class="card-icon"><i class="ri-loader-4-line"></i></div>
+                        <div class="card-info"><div class="card-title">加载中...</div></div>
+                    </div>
+                </div>
+                <div class="delete-btn-area" data-delete-date="${date}" data-delete-type="${type}">
+                    <i class="ri-delete-bin-line"></i>
+                </div>
+            </div>
+        </div>
+    `;
+}
 function navigateToContent(date, type) {
     closeFavoritesModal();
     loadDataForDate(date);
@@ -2115,7 +2118,45 @@ function initDragSwipe() {
         isSettling = false;
     };
 }
-
+function injectFavoriteCardStyles() {
+    const styleId = 'favorite-card-styles';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+        .favorite-card .card-title,
+        .favorite-card .card-subtitle,
+        .favorite-card .card-preview {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .favorite-card .card-info {
+            min-width: 0;
+            overflow: hidden;
+            flex: 1;
+        }
+        .favorite-card .card-title-row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: baseline;
+            gap: 8px;
+            min-width: 0;
+        }
+        .favorite-card .card-title-row .card-title {
+            flex-shrink: 1;
+            min-width: 0;
+        }
+        .favorite-card .card-title-row .card-subtitle {
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+        .favorite-card .card-preview {
+            margin-top: 4px;
+        }
+    `;
+    document.head.appendChild(style);
+}
 // ========== 初始化 ==========
 document.addEventListener('DOMContentLoaded', async () => {
     // 初始化 UI 相关设置（不依赖数据）
@@ -2146,6 +2187,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     resetPageContentTransform();
     bindContactUsCopy();
     bindVersionClick();
+    // 初始化夜间模式
+initTheme();
+bindNightModeToggle();
+injectFavoriteCardStyles();
     await fetchAndUpdateVersion();
     window.addEventListener('load', () => {
         updateHighlight();
@@ -2174,14 +2219,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const newUrl = `?date=${initialDate}`;
         window.history.replaceState({ date: initialDate }, '', newUrl);
     } else {
-        // URL 中有日期，验证是否存在
-        if (!allDates.includes(initialDate)) {
-            console.warn(`日期 ${initialDate} 不存在，自动跳转到最新日期 ${latestDate}`);
-            initialDate = latestDate;
-            const newUrl = `?date=${initialDate}`;
-            window.history.replaceState({ date: initialDate }, '', newUrl);
-            showToast(`日期不存在，已为您跳转至最新内容`, 2000);
-        }
+
+if (!allDates.includes(initialDate)) {
+    console.warn(`日期 ${initialDate} 不存在，自动跳转到最新日期 ${latestDate}`);
+    initialDate = latestDate;
+    const newUrl = `?date=${initialDate}`;
+    window.history.replaceState({ date: initialDate }, '', newUrl);
+    showToast(`日期不存在，已为您跳转至最新内容`, 2000);
+}
     }
 
     // 加载初始日期内容
@@ -2314,7 +2359,7 @@ if ('serviceWorker' in navigator) {
             if (action === 'copy') {
                 const ok = await copyLinkToClipboard();
                 shareSuccess = ok;
-                needToastMsg = ok ? '链接已复制 ✓' : '复制失败，请手动复制';
+                needToastMsg = ok ? '链接已复制' : '复制失败，请手动复制';
             } else {
                 const ok = await copyLinkToClipboard();
                 shareSuccess = ok;
@@ -2431,6 +2476,90 @@ if ('serviceWorker' in navigator) {
     window.openSharePanel = openSharePanel;
     window.closeSharePanel = closeSharePanel;
 })();
+
+// ========== 夜间模式管理 ==========
+const THEME_STORAGE_KEY = 'site_theme';
+const DARK_CLASS = 'dark-mode';
+
+// 获取夜间模式菜单项
+const nightModeMenuItem = Array.from(document.querySelectorAll('.sidebar-menu .menu-item'))
+    .find(item => item.textContent.includes('夜间模式') || item.textContent.includes('日间模式'));
+
+// 更新菜单项的图标和文字
+function updateThemeMenuItem(isDark) {
+    if (!nightModeMenuItem) return;
+    const icon = nightModeMenuItem.querySelector('i');
+    const textNode = nightModeMenuItem.childNodes[1]; // 文字节点
+    
+    if (isDark) {
+        if (icon) {
+            icon.classList.remove('ri-moon-clear-line');
+            icon.classList.add('ri-sun-line');
+        }
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+            textNode.textContent = ' 日间模式';
+        } else if (nightModeMenuItem.lastChild && nightModeMenuItem.lastChild.nodeType === Node.TEXT_NODE) {
+            nightModeMenuItem.lastChild.textContent = ' 日间模式';
+        } else {
+            // 确保文字正确更新
+            const textSpan = Array.from(nightModeMenuItem.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+            if (textSpan) textSpan.textContent = ' 日间模式';
+        }
+    } else {
+        if (icon) {
+            icon.classList.remove('ri-sun-line');
+            icon.classList.add('ri-moon-clear-line');
+        }
+        if (textNode && textNode.nodeType === Node.TEXT_NODE) {
+            textNode.textContent = ' 夜间模式';
+        } else if (nightModeMenuItem.lastChild && nightModeMenuItem.lastChild.nodeType === Node.TEXT_NODE) {
+            nightModeMenuItem.lastChild.textContent = ' 夜间模式';
+        } else {
+            const textSpan = Array.from(nightModeMenuItem.childNodes).find(n => n.nodeType === Node.TEXT_NODE);
+            if (textSpan) textSpan.textContent = ' 夜间模式';
+        }
+    }
+}
+
+// 应用主题
+function applyTheme(isDark) {
+    if (isDark) {
+        document.body.classList.add(DARK_CLASS);
+    } else {
+        document.body.classList.remove(DARK_CLASS);
+    }
+    updateThemeMenuItem(isDark);
+    localStorage.setItem(THEME_STORAGE_KEY, isDark ? 'dark' : 'light');
+}
+
+// 切换主题
+function toggleTheme() {
+    const isCurrentlyDark = document.body.classList.contains(DARK_CLASS);
+    applyTheme(!isCurrentlyDark);
+    // 切换后关闭侧边栏
+    if (typeof closeSidebar === 'function') {
+        closeSidebar();
+    }
+}
+
+// 初始化主题（从 localStorage 读取）
+function initTheme() {
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const isDark = savedTheme === 'dark';
+    applyTheme(isDark);
+}
+
+// 绑定夜间模式菜单点击事件
+function bindNightModeToggle() {
+    if (!nightModeMenuItem) return;
+    // 移除原有监听器避免重复绑定
+    nightModeMenuItem.removeEventListener('click', toggleTheme);
+    nightModeMenuItem.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleTheme();
+    });
+}
 window.toggleCard = function () { };
 window.hideCard = function () { };
 

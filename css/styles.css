@@ -45,7 +45,7 @@ body {
     font-size: 1rem;
 }
 
-.track-album,#sentence p,.from span,.article p,.about-content,.state p {
+.track-album,#sentence p,.from span,.article p,.about-content{
     color: #666
 }
 
@@ -450,7 +450,7 @@ body.animating-date-switch .card-container {
     display: block;
 }
 #article .title {
-    font-size: 1.4rem; /* 24px */
+    font-size: 1.35rem; /* 24px */
     margin-bottom: 0.375rem; /* 6px */
 }
 #article .theauthor {
@@ -546,7 +546,8 @@ body.animating-date-switch .card-container {
 }
 
 .state p {
-    font-size: 0.75rem; /* 12px */
+  color: #999;
+    font-size: 0.7rem; /* 12px */
 }
 /* 时间相关样式 */
 #left-main {
@@ -712,12 +713,8 @@ body.animating-date-switch .card-container {
     transition: background 0.2s;
 }
 
-.month-item:active {
-    background-color: #f5f5f5;
-}
-
 .month-item.active {
-    background-color: #f2f2f7;
+    background-color: #f9f9f9;
     border-right: 2px solid #000;
 }
 
@@ -832,7 +829,7 @@ body.timeline-open .timeline-modal {
     display: flex;
     align-items: center;
     padding: 1rem 0; /* 16px */
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid #f9f9f9;
     color: #000;
     cursor: pointer;
     transition: background 0.2s;
@@ -857,7 +854,7 @@ body.timeline-open .timeline-modal {
 .sidebar-footer {
     flex-shrink: 0;
     padding: 1.25rem 0 0.9375rem; /* 20px 0 15px */
-    border-top: 1px solid rgba(0, 0, 0, 0.05);
+    border-top: 1px solid #f9f9f9;
 }
 @media (max-width: 600px) {
     .nav-item {
@@ -879,7 +876,7 @@ body.timeline-open .timeline-modal {
 	align-self: center;
     padding-top: 0.625rem; /* 10px */
 	width: 90%;
-    border-top: 0.5px solid #f0f0f0;
+    border-top: 1px solid #f9f9f9;
 }
 
 .stats-actions button {
@@ -1157,10 +1154,10 @@ body.favorites-open .favorites-modal {
 /* 复制提示 Toast 样式 */
 .toast {
     position: fixed;
-    bottom: 5rem; /* 80px */
+    bottom: 5.5rem; 
     left: 50%;
     transform: translateX(-50%);
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.3);
     color: #fff;
     padding: 0.5rem 1rem; /* 8px 16px */
     font-size: 0.875rem; /* 14px */
@@ -1342,41 +1339,39 @@ body.changelog-open .changelog-modal {
     position: relative;
     background: #ffffff;
     width: 100%;
-    padding: 20px;
+    padding: 10px;
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
-    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
 }
 .share-modal.active .share-panel {
     transform: translateY(0);
 }
 .share-header {
-    text-align: center;
-    font-size: 1rem;
-    color: #666;
+    font-size: 1.2rem;
+    color: #333;
+    padding-left: 10px;
     margin-bottom: 24px;
     font-weight: 500;
 }
 .share-options {
     display: flex;
     justify-content: space-around;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 .share-option {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
-    padding: 8px 16px;
+    padding: 12px;
     transition: background 0.2s, transform 0.1s;
     min-width: 70px;
 }
 .share-option:active {
     background: #f0f0f0;
-    transform: scale(0.96);
 }
 .share-option i {
     font-size: 2rem;
@@ -1389,17 +1384,429 @@ body.changelog-open .changelog-modal {
 }
 .share-cancel {
     text-align: center;
-    padding: 10px 0 8px;
+    padding: 10px 8px;
     cursor: pointer;
     color: #000;
     font-weight: 500;
     font-size: 1rem;
+    border-top: 1px solid #f9f9f9;
     transition: background 0.2s;
 }
-.share-cancel:active {
-    background: #f9f9f9;
-}
+
 body.share-panel-open {
     overflow: hidden;
     touch-action: none;
+}
+
+/* ========== 夜间模式 ========== */
+.dark-mode {
+  transition: background 0.2s;
+    background-color: #121212;
+}
+
+/* 全局背景与文字 */
+.dark-mode body {
+    background-color: #121212;
+}
+
+.dark-mode .page-content {
+    background-color: #1e1e1e;
+}
+
+/* 卡片样式 */
+.dark-mode .card {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .card .card-inner {
+    background-color: #1e1e1e;
+}
+
+/* 导航栏 */
+.dark-mode .menu-bar {
+    background-color: #e0e0e0;
+}
+
+.dark-mode .nav-item {
+    color: #e0e0e0;
+}
+
+.dark-mode .nav-item.active {
+    color: #ffffff;
+}
+
+.dark-mode .highlight {
+    background-color: #ffffff;
+}
+
+.dark-mode .date-year {
+    color: #e0e0e0;
+}
+
+.dark-mode .date-day {
+    color: #ffffff;
+}
+
+.dark-mode .date-tag {
+    border-color: #ffffff transparent;
+}
+
+/* 音乐卡片 */
+.dark-mode .track-album {
+    color: #ffffff;
+}
+
+.dark-mode .track-singer {
+    color: #aaa;
+}
+
+.dark-mode .progress-bar {
+    background-color: #2a2a2a;
+}
+
+.dark-mode .progress-fill {
+    background-color: #4a4a4a;
+}
+
+.dark-mode .play-pause-icon i {
+    color: #e0e0e0;
+}
+
+/* 封面阴影（夜间模式下调亮边缘） */
+.dark-mode .album-image {
+    box-shadow: 
+        0 0 0 4px #2a2a2a,
+        0 0 0 5px rgba(255,255,255,0.03),
+        0 0 0 8px #2a2a2a,
+        0 0 0 9px rgba(255,255,255,0.03),
+        0 0 0 12px #2a2a2a,
+        0 0 0 13px rgba(255,255,255,0.03),
+        0 0 0 16px #2a2a2a,
+        0 0 0 17px rgba(255,255,255,0.03),
+        0 0 0 20px #2a2a2a,
+        0 0 0 21px rgba(255,255,255,0.03),
+        0 0 0 24px #2a2a2a,
+        0 0 0 25px rgba(255,255,255,0.03),
+        0 0 0 28px #2a2a2a,
+        0 0 0 29px rgba(255,255,255,0.03),
+        0 0 0 32px #2a2a2a,
+        0 0 0 33px rgba(255,255,255,0.03),
+        0 0 0 36px #2a2a2a,
+        0 0 0 37px rgba(255,255,255,0.03),
+        0 0 0 40px #2a2a2a,
+        0 0 0 41px rgba(255,255,255,0.03),
+        0 0 0 45px #2a2a2a,
+        0 0 0 46px rgba(255,255,255,0.03),
+        0 0 0 46.5px #2a2a2a;
+}
+
+/* 句子卡片 */
+.dark-mode #sentenceText {
+    color: #e0e0e0;
+}
+
+.dark-mode .from span {
+    color: #aaa;
+}
+
+/* 文章卡片 */
+.dark-mode #article .title {
+    color: #ffffff;
+}
+
+.dark-mode #article .theauthor {
+    color: #aaa;
+}
+
+.dark-mode #article .article p {
+    color: #ccc;
+}
+
+/* 底部操作栏 */
+.dark-mode .stats-actions {
+    border-top-color: #2a2a2a;
+}
+
+.dark-mode .stats-actions button i {
+    color: #aaa;
+}
+
+.dark-mode .stats-actions button .count {
+    color: #888;
+}
+
+.dark-mode .stats-actions .favorite-btn i.ri-heart-2-fill {
+    color: #e74c3c;
+}
+
+/* 侧边栏 */
+.dark-mode .sidebar {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .sidebar-header .logo {
+    color: #ffffff;
+}
+
+.dark-mode .close-sidebar {
+    color: #aaa;
+}
+
+.dark-mode .close-sidebar:active {
+    color: #ffffff;
+}
+
+.dark-mode .about-title {
+    color: #ffffff;
+}
+
+.dark-mode .about-content {
+    color: #aaa;
+}
+
+.dark-mode .menu-item {
+    color: #e0e0e0;
+    border-bottom-color: #2a2a2a;
+}
+.dark-mode .menu-item:active {
+    background: rgba(255, 255, 255, 0.05);
+}
+.dark-mode .menu-item i {
+    color: #aaa;
+}
+
+.dark-mode .version,
+.dark-mode .mail {
+    color: #888;
+}
+
+.dark-mode .sidebar-footer {
+    border-top-color: #2a2a2a;
+}
+
+.dark-mode .state p {
+    color: #888;
+}
+
+/* 侧边栏遮罩层（夜间模式半透明） */
+.dark-mode .sidebar-overlay.active {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+/* 时间轴模态框 */
+.dark-mode .timeline-modal {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .close-timeline {
+    color: #aaa;
+}
+
+.dark-mode .close-timeline:active {
+    color: #ffffff;
+}
+
+.dark-mode .month-item {
+    color: #e0e0e0;
+}
+
+.dark-mode .month-item.active {
+    background-color: #2a2a2a;
+    border-right-color: #ffffff;
+}
+
+.dark-mode .time-box {
+    border-color: #3a3a3a;
+    color: #e0e0e0;
+}
+
+.dark-mode .time-box:active,
+.dark-mode .time-box:focus {
+    border-color: #ffffff;
+}
+
+.dark-mode .his-day {
+    color: #ffffff;
+}
+
+.dark-mode .his-year {
+    color: #aaa;
+}
+
+.dark-mode .his-fix {
+    background-color: #3a3a3a;
+}
+
+/* 收藏页面模态框 */
+.dark-mode .favorites-modal {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .favorites-header h3 {
+    color: #ffffff;
+}
+
+.dark-mode .close-favorites {
+    color: #aaa;
+}
+
+.dark-mode .close-favorites:active {
+    color: #ffffff;
+}
+
+.dark-mode .favorites-body {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .favorites-body.empty {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .favorites-body.has-favorites {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .date-group-header {
+    color: #aaa;
+}
+
+.dark-mode .favorite-card {
+    background-color: #2a2a2a;
+}
+
+.dark-mode .card-title {
+    color: #ffffff;
+}
+
+.dark-mode .card-subtitle {
+    color: #aaa;
+}
+
+.dark-mode .card-preview {
+    color: #bbb;
+}
+
+.dark-mode .empty-favorites i {
+    color: #666;
+}
+
+.dark-mode .empty-favorites p {
+    color: #888;
+}
+
+/* 更新日志模态框 */
+.dark-mode .changelog-modal {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .changelog-header h3 {
+    color: #ffffff;
+}
+
+.dark-mode .close-changelog {
+    color: #aaa;
+}
+
+.dark-mode .close-changelog:active {
+    color: #ffffff;
+}
+
+.dark-mode .changelog-body {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .changelog-item {
+    background-color: #2a2a2a;
+}
+
+.dark-mode .changelog-version {
+    color: #ffffff;
+}
+
+.dark-mode .changelog-version span {
+    color: #aaa;
+}
+
+.dark-mode .changelog-content {
+    color: #ccc;
+}
+
+/* 分享弹窗 */
+.dark-mode .share-modal .share-overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+.dark-mode .share-panel {
+    background-color: #1e1e1e;
+}
+
+.dark-mode .share-header {
+    color: #aaa;
+}
+
+.dark-mode .share-option i {
+    color: #ddd;
+}
+
+.dark-mode .share-option span {
+    color: #aaa;
+}
+
+.dark-mode .share-option:active {
+    background-color: #2a2a2a;
+}
+
+.dark-mode .share-cancel {
+    color: #e0e0e0;
+}
+
+.dark-mode .share-cancel:active {
+    background-color: #2a2a2a;
+}
+
+/* Toast 提示 */
+.dark-mode .toast {
+    background: rgba(255, 255, 255, 0.2);
+    color: #e0e0e0;
+}
+
+/* 滚动条 */
+.dark-mode .card-inner::-webkit-scrollbar-thumb,
+.dark-mode .favorites-body::-webkit-scrollbar-thumb,
+.dark-mode .changelog-body::-webkit-scrollbar-thumb {
+    background-color: #444;
+}
+
+.dark-mode .card-inner,
+.dark-mode .favorites-body,
+.dark-mode .changelog-body {
+    scrollbar-color: #444 #2a2a2a;
+}
+
+/* 文章卡片图片加载失败占位背景 */
+.dark-mode #article .bg-img.load-failed {
+    background-color: #2a2a2a;
+}
+
+/* 句子图片容器（无额外样式） */
+.dark-mode .sentence-image {
+    background-color: #2a2a2a;
+}
+
+/* 收藏卡片占位加载图标颜色 */
+.dark-mode .loading-state {
+    color: #aaa;
+}
+
+.dark-mode .loading-state i {
+    color: #aaa;
+}
+
+/* 删除按钮区域（保持红色，不做夜间特殊处理） */
+.dark-mode .delete-btn-area {
+    background-color: #c0392b;
+}
+
+.dark-mode .delete-btn-area:active {
+    background-color: #a93226;
 }
